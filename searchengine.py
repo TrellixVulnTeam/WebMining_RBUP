@@ -180,5 +180,6 @@ class crawler:
     if __name__ == '__main__':
         e = searcher('searchindex.db')
         e.getMatchRows('wikipedia three')
+        print("a")
 
 
