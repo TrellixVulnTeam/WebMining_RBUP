@@ -170,15 +170,37 @@ class crawler:
             print(fullquery)
             cur = self.con.execute(fullquery)
             rows = [row for row in cur]
-            for r in rows:
-                print(r)
-
 
             return rows, wordids
+
+        def getScoredList(self, rows, wordids):
+            totalScores = dict([(row[0],0) for row in rows])
+
+            #这里是稍后放置评价函数的地方
+            weights = []
+
+            for (weight, scores) in weights:
+                for url in totalScores:
+                    totalScores[url] += weight * scores[url]
+            return  totalScores
+
+        def geturlname(self,id):
+            return self.con.execute("select url from urllist where rowid = %d" % id).fetchone()[0]
+
+        def query(self, q):
+            rows, wordids = self.getMatchRows(q)
+            scores = self.getScoredList(rows, wordids)
+            rankedScores = [(score, url) for (url, score) in scores.items()]
+            rankedScores.sort()
+            rankedScores.reverse()
+            for (score, urlid) in rankedScores[0:10]:
+                print('%f\t%s' % (score, self.geturlname(urlid)))
+            return wordids, [r[1] for r in rankedScores[0:10]]
+
 
 
     if __name__ == '__main__':
         e = searcher('searchindex.db')
-        e.getMatchRows('wikipedia three')
+        e.query('wikipedia kingdom')
 
 
