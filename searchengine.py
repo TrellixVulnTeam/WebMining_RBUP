@@ -177,7 +177,7 @@ class crawler:
             totalScores = dict([(row[0],0) for row in rows])
 
             #这里是稍后放置评价函数的地方
-            weights = []
+            weights = [(1.0, self.frequencyScore(rows))]
 
             for (weight, scores) in weights:
                 for url in totalScores:
@@ -196,6 +196,23 @@ class crawler:
             for (score, urlid) in rankedScores[0:10]:
                 print('%f\t%s' % (score, self.geturlname(urlid)))
             return wordids, [r[1] for r in rankedScores[0:10]]
+
+        def normalizeScores(self, scores, smallIsBetter = 0):
+            vsmall = 0.00001
+            if smallIsBetter:
+                minScore = min(scores.values())
+                return dict([(u,float(minScore) / max(vsmall, l)) for (u, l) in scores.items()])
+            else:
+                maxScore = max(scores.values())
+                if maxScore == 0:
+                    maxScore = vsmall
+                return dict([(u, float(c) / maxScore) for (u, c) in scores.items()])
+
+        def frequencyScore(self, rows):
+            counts = dict([(row[0],0) for row in rows])
+            for row in rows:
+                counts[row[0]] += 1
+            return self.normalizeScores(counts)
 
 
 
