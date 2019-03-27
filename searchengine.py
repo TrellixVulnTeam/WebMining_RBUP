@@ -3,6 +3,7 @@ import urllib.parse
 from bs4 import BeautifulSoup
 import sqlite3
 import re
+import searchengine
 
 ignoreWords = {'the': 1, 'of': 1, 'to': 1, 'and': 1, 'a': 1, 'in': 1, 'is': 1, 'it': 1}
 
@@ -35,8 +36,8 @@ class crawler:
         print('Indexing ' + url)
 
         #获取每个单词
-        text = self.gettextonly(soup)
-        words = self.separatewords(text)
+        text = self.getTextOnly(soup)
+        words = self.seperateWords(text)
 
         #得到URL的id
         urlid = self.getEntryId('urllist','url',url)
@@ -112,6 +113,7 @@ class crawler:
                     self.dbcommit()
 
                 except:
+
                     print("Could not parse page %s" % page)
 
             pages = newPages
@@ -131,6 +133,52 @@ class crawler:
         self.con.execute('create index urlfromidx on link(fromid)')
         self.dbcommit()
 
+    class searcher:
+        def __init__(self,dbname):
+            self.con = sqlite3.connect(dbname)
 
+        def __del__(self):
+            self.con.close()
+
+        def getMatchRows(self,q):
+            #构造查询的字符串
+            fieldlist = 'w0.urlid'
+            tablelist = ''
+            clauselist = ''
+            wordids = []
+
+            #根据空格拆分单词
+            words = q.split(' ')
+            tablenumber = 0
+
+            for word in words:
+                wordrow = self.con.execute("select rowid from wordlist where word='%s'" % word).fetchone()
+                if wordrow is not None:
+                    wordid = wordrow[0]
+                    wordids.append(wordid)
+                    if tablenumber > 0:
+                        tablelist += ','
+                        clauselist += ' and '
+                        clauselist += 'w%d.urlid=w%d.urlid and ' % (tablenumber - 1, tablenumber)
+                    fieldlist += ',w%d.location' % tablenumber
+                    tablelist += 'wordlocation w%d' % tablenumber
+                    clauselist += 'w%d.wordid=%d' % (tablenumber, wordid)
+                    tablenumber += 1
+
+            #根据各个组分，建立查询
+            fullquery = 'select %s from %s where %s' % (fieldlist, tablelist, clauselist)
+            print(fullquery)
+            cur = self.con.execute(fullquery)
+            rows = [row for row in cur]
+            for r in rows:
+                print(r)
+
+
+            return rows, wordids
+
+
+    if __name__ == '__main__':
+        e = searcher('searchindex.db')
+        e.getMatchRows('wikipedia three')
 
 
